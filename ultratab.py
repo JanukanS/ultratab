@@ -9,10 +9,6 @@ class TabView:
     tabDict: dict
 
     @cached_property
-    def TabTitles(self):
-        return list(self.tabDict.keys())
-
-    @cached_property
     def TabChildren(self):
         outList = []
         for _, tbFunc in self.tabDict.items():
@@ -22,30 +18,24 @@ class TabView:
                     display(TabView(tbFunc).Tab)
                 else:
                     tbFunc()
-            # overflow
-            with widgets.Output():
-                print()
         return outList
 
     @cached_property
     def Tab(self):
         tb = widgets.Tab()
         tb.children = self.TabChildren
-        for ind, tt in enumerate(self.TabTitles):
+        tab_titles = list(self.tabDict.keys())
+        for ind, tt in enumerate(tab_titles):
             tb.set_title(ind, tt)
         return tb
 
 class InteractivePlotGen:
-    @classmethod
-    def extractArgs(cls, genPlotFunc):
-        """extract the arguments of a function assuming first arg is self and second arg is an output widget"""
-        argCont = genPlotFunc.__code__.co_argcount
-        return genPlotFunc.__code__.co_varnames[1:argCont]
 
     @classmethod
     def extractSliders(cls, genObj, genPlotFunc):
         """get the sliders required for the interactive widget"""
-        argList = cls.extractArgs(genPlotFunc)
+        argCont = genPlotFunc.__code__.co_argcount
+        argList = genPlotFunc.__code__.co_varnames[1:argCont]
         return {argName: getattr(genObj, argName) for argName in argList}
 
 
