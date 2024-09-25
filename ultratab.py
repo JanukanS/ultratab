@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from functools import cached_property, partialmethod
+from functools import cached_property
 import ipywidgets as widgets
 from inspect import signature
 from itertools import product
@@ -76,14 +76,17 @@ class TabGen:
         return {nameVal: funcGen(obj, attrVal) for nameVal, attrVal in zip(genPlotNames, genPlotAttrs)}
 
     @classmethod
-    def extractDict(cls, obj):
+    def _extract_dict(cls, obj):
         plotPair = cls._extract_plot_methods(obj)
         plotPair.update(cls._extract_genplot_methods(obj))
         return plotPair
 
     @classmethod
-    def generate(cls, objDict: dict):
-        tabDict = {key: cls.extractDict(val) for key, val in objDict.items()}
+    def generate(cls, objDict):
+        if isinstance(objDict, dict):
+            tabDict = {key: cls._extract_dict(val) for key, val in objDict.items()}
+        else:
+            tabDict = cls._extract_dict(objDict)
         return TabView(tabDict)
 
     @classmethod
