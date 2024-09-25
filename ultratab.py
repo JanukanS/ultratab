@@ -53,43 +53,37 @@ class InteractivePlotGen:
         combWidgets = widgets.VBox([intWidget, opw])
         display(combWidgets)
 
+
 class TabGen:
-    @staticmethod
-    def MethodLocatorGenerator(methodClass):
-        return lambda methodName: getattr(methodClass, methodName).__code__.co_firstlineno
+    _plot_prefix = "plot_"
+    _genplot_prefix = "genPlot_"
 
     @classmethod
-    def extractPlotMethods(cls, obj):
-        plotParse = lambda val: "plot" in val and val[:4] == "plot"
-        plotAttrs = [val for val in dir(obj) if plotParse(val)]
-        methodLocFunc = cls.MethodLocatorGenerator(type(obj))
+    def _extract_plot_methods(cls, obj):
+        plotAttrs = [val for val in dir(obj) if val.startswith(cls._plot_prefix)]
+        methodLocFunc = lambda methodName: getattr(type(obj), methodName).__code__.co_firstlineno
         plotAttrs.sort(key=methodLocFunc)
-        plotNames = [val[4:] for val in plotAttrs]
-        plotPair = {nameVal: getattr(obj, attrVal) for nameVal, attrVal in zip(plotNames, plotAttrs)}
-        return plotPair
+        plotNames = [val[len(cls._plot_prefix):] for val in plotAttrs]
+        return {nameVal: getattr(obj, attrVal) for nameVal, attrVal in zip(plotNames, plotAttrs)}
 
     @classmethod
-    def extractGenPlotMethods(cls, obj):
-        genPlotParse = lambda val: "genPlot" in val and val[:7] == "genPlot"
-        genPlotAttrs = [val for val in dir(obj) if genPlotParse(val)]
-        methodLocFunc = cls.MethodLocatorGenerator(type(obj))
+    def _extract_genplot_methods(cls, obj):
+        genPlotAttrs = [val for val in dir(obj) if val.startswith(cls._genplot_prefix)]
+        methodLocFunc = lambda methodName: getattr(type(obj), methodName).__code__.co_firstlineno
         genPlotAttrs.sort(key=methodLocFunc)
-        genPlotNames = [val[7:] for val in genPlotAttrs]
+        genPlotNames = [val[len(cls._genplot_prefix):] for val in genPlotAttrs]
         funcGen = lambda obj, attrName: lambda: InteractivePlotGen.plotMethod(obj, getattr(obj, attrName))
-        genPlotPair = {nameVal: funcGen(obj, attrVal) for nameVal, attrVal in zip(genPlotNames, genPlotAttrs)}
-        return genPlotPair
+        return {nameVal: funcGen(obj, attrVal) for nameVal, attrVal in zip(genPlotNames, genPlotAttrs)}
 
     @classmethod
     def extractDict(cls, obj):
-        plotPair = cls.extractPlotMethods(obj)
-        plotPair.update(cls.extractGenPlotMethods(obj))
+        plotPair = cls._extract_plot_methods(obj)
+        plotPair.update(cls._extract_genplot_methods(obj))
         return plotPair
 
     @classmethod
     def generate(cls, objDict: dict):
-        tabDict = {}
-        for key, val in objDict.items():
-            tabDict[key] = cls.extractDict(val)
+        tabDict = {key: cls.extractDict(val) for key, val in objDict.items()}
         return TabView(tabDict)
 
     @classmethod
